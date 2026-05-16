@@ -1,0 +1,43 @@
+# Django & REST Framework
+Django==4.2.7
+djangorestframework==3.14.0
+django-cors-headers==4.3.0
+
+# Environment & Configuration
+python-dotenv==1.0.0
+
+# LangChain & LangGraph - COMPATIBLE VERSIONS
+langchain==0.2.16
+langchain-core==0.2.43
+langgraph==0.2.28
+langchain-openai==0.1.23
+langchain-community==0.2.16
+langchain-text-splitters==0.2.4
+openai==1.109.1
+
+# Vector Store & Embeddings
+chromadb==0.4.24
+langchain-chroma==0.1.2
+sentence-transformers==2.7.0
+posthog==3.0.2
+
+# Database Drivers
+# mysqlclient==2.2.0  # Uncomment if MySQL is installed
+pymongo==4.6.0
+
+# Data Validation
+pydantic==2.7.1
+pydantic-settings==2.2.1
+
+# Utilities
+tiktoken==0.6.0
+aiofiles==23.2.1
+PyYAML==6.0.1
+
+# Monitoring
+langsmith>=0.1.112,<0.2.0
+
+# Additional utilities
+requests==2.31.0
+Pillow==10.1.0
+gunicorn==23.0.0

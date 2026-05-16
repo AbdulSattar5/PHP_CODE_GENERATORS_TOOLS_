@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - GenCode AI</title>
+    {% load static %}
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body class="login-page">
+    <div class="login-card">
+        <p class="login-logo">GenCode AI</p>
+        <h1 class="login-heading">Create your account</h1>
+        <p class="login-subheading">Set up your own workspace so you can upload a codebase and generate PHP forms safely.</p>
+
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" style="margin-bottom:16px;">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST" action="{% url 'register' %}">
+            {% csrf_token %}
+            <input type="text" id="username" name="username" class="login-input" placeholder="Username" required autofocus>
+            <input type="email" id="email" name="email" class="login-input" placeholder="Email address">
+            <input type="password" id="password" name="password" class="login-input" placeholder="Password" required>
+            <input type="password" id="confirm_password" name="confirm_password" class="login-input" placeholder="Confirm password" required>
+            <button type="submit" class="btn-continue">Create account</button>
+        </form>
+
+        <div class="login-footer">
+            <p style="margin-bottom:12px;">Already registered? <a href="{% url 'login' %}">Log in here</a></p>
+            <p><a href="{% url 'home' %}">Back to home</a></p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<aside class="sidebar app-sidebar" id="sidebar">
+    <a href="{% url 'dashboard' %}" class="sidebar-brand">
+        <span class="sidebar-brand-icon"><i class="fas fa-code"></i></span>
+        <span>GenCode AI</span>
+    </a>
+
+    <div class="sidebar-top">
+        <div class="sidebar-search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="search" id="sidebarSearchInput" placeholder="Search projects..." aria-label="Search projects">
+        </div>
+        <a href="{% url 'code_generation' %}" class="new-chat-btn" title="New generation" onclick="startNewChat(event)">
+            <i class="fas fa-pen"></i>
+        </a>
+    </div>
+
+    <nav class="sidebar-nav">
+        {% if sidebar_projects %}
+        <div class="nav-section">
+            <span class="nav-section-label">Recent</span>
+            {% for project in sidebar_projects %}
+            <a href="{% url 'code_generation' %}?project={{ project.id }}"
+               class="nav-item {% if request.GET.project == project.id|stringformat:'s' %}active{% endif %}"
+               data-nav-item>
+                <span class="nav-item-text">{{ project.name }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </nav>
+
+    <div class="sidebar-links">
+        <a href="{% url 'dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            <i class="fas fa-home"></i> Home
+        </a>
+        <a href="{% url 'projects' %}" class="sidebar-link {% if request.resolver_match.url_name == 'projects' %}active{% endif %}">
+            <i class="fas fa-folder"></i> Projects
+        </a>
+        <a href="{% url 'code_generation' %}" class="sidebar-link {% if request.resolver_match.url_name == 'code_generation' %}active{% endif %}">
+            <i class="fas fa-wand-magic-sparkles"></i> Generate
+        </a>
+        <a href="{% url 'codebase_upload' %}" class="sidebar-link {% if request.resolver_match.url_name == 'codebase_upload' %}active{% endif %}">
+            <i class="fas fa-database"></i> Codebase
+        </a>
+        <a href="{% url 'standards_upload' %}" class="sidebar-link {% if request.resolver_match.url_name == 'standards_upload' %}active{% endif %}">
+            <i class="fas fa-file-code"></i> Standards
+        </a>
+        <a href="{% url 'settings' %}" class="sidebar-link {% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
+            <i class="fas fa-cog"></i> Settings
+        </a>
+    </div>
+
+    <div class="sidebar-footer">
+        <a href="{% url 'settings' %}" class="user-menu-btn">
+            <div class="user-avatar-circle">{{ user.username|first|upper }}</div>
+            <span>{{ user.username }}</span>
+        </a>
+        <a href="{% url 'logout' %}" class="sidebar-link" style="margin-top:6px;font-size:13px;">
+            <i class="fas fa-sign-out-alt"></i> Log out
+        </a>
+    </div>
+</aside>

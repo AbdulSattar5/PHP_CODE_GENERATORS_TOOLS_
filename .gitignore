@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Runtime/private app data
+runtime/
+company_codebases/
+temp_uploads/
+generated_files/
+generated_code/
+validation_reports/
+exports/
+uploads/
+cache_storage/
+storage/
+temp_prompts/
+
+# Vector DB / embeddings / chunks
+/chroma/
+/chromadb/
+/chroma_db/
+/vectorstore/
+/vector_store/
+/vectordb/
+/embeddings/
+/chunks/
+/indexes/
+*.sqlite3
+*.db
+*.pkl
+*.pickle
+*.faiss
+*.index
+*.bin
+*.djcache
+
+# Uploaded archives
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+
+# Node/build/cache
+node_modules/
+dist/
+build/
+.cache/
+
+# IDE/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.pytest_cache/
+
+# Logs
+logs/
+*.log
+
+# Misc runtime artifacts
+temp_request_parser_snapshot.txt

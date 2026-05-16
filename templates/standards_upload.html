@@ -1,0 +1,789 @@
+<!-- templates/standards_upload.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Coding Standards - GenCode AI{% endblock %}
+
+{% block extra_css %}{% endblock %}
+{% block content %}
+<div class="page-shell">
+<!--
+REMOVE_STYLE_START
+    .standards-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-xl);
+    }
+    
+    .standards-editor {
+        background: var(--bg-primary);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-xl);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .standards-textarea {
+        width: 100%;
+        min-height: 500px;
+        padding: var(--spacing-md);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        font-family: 'Monaco', 'Consolas', monospace;
+        font-size: var(--font-size-sm);
+        line-height: 1.6;
+        resize: vertical;
+    }
+    
+    .standards-preview {
+        background: var(--bg-primary);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-xl);
+        box-shadow: var(--shadow-sm);
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .standards-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-xl);
+    }
+    
+    .standard-card {
+        background: var(--bg-primary);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+    }
+    
+    .standard-card.active {
+        border: 2px solid var(--primary-color);
+        background: rgba(99, 102, 241, 0.05);
+    }
+    
+    .template-section {
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    /* Modal Styles */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-lg);
+    }
+    
+    .modal-overlay.show {
+        display: flex;
+    }
+    
+    .modal-content {
+        background: var(--bg-primary);
+        border-radius: var(--radius-lg);
+        max-width: 900px;
+        width: 100%;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .modal-header {
+        padding: var(--spacing-lg);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .modal-body {
+        padding: var(--spacing-xl);
+        overflow-y: auto;
+        flex: 1;
+    }
+    
+    .modal-footer {
+        padding: var(--spacing-lg);
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--spacing-sm);
+    }
+    
+    .standard-metadata {
+        display: flex;
+        gap: var(--spacing-lg);
+        margin-bottom: var(--spacing-lg);
+        padding: var(--spacing-md);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        flex-wrap: wrap;
+    }
+    
+    .metadata-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        font-size: var(--font-size-sm);
+    }
+    
+    .standard-content {
+        line-height: 1.8;
+    }
+    
+    .standard-content h1,
+    .standard-content h2,
+    .standard-content h3 {
+        margin-top: var(--spacing-lg);
+        margin-bottom: var(--spacing-md);
+    }
+    
+    .standard-content ul,
+    .standard-content ol {
+        margin-left: var(--spacing-lg);
+        margin-bottom: var(--spacing-md);
+    }
+    
+    .standard-content code {
+        background: var(--bg-secondary);
+        padding: 2px 6px;
+        border-radius: var(--radius-sm);
+        font-family: 'Monaco', 'Consolas', monospace;
+    }
+    
+    .standard-content pre {
+        background: var(--bg-secondary);
+        padding: var(--spacing-md);
+        border-radius: var(--radius-md);
+        overflow-x: auto;
+        margin-bottom: var(--spacing-md);
+    }
+-->
+    <header class="page-header">
+        <div>
+            <h1>
+                <i class="fas fa-file-code"></i>
+                Coding Standards
+            </h1>
+            <p class="subtitle">Define your company's coding guidelines and conventions</p>
+        </div>
+        <div>
+            <button class="btn btn-secondary" onclick="refreshCache()" id="refreshCacheBtn">
+                <i class="fas fa-sync-alt"></i> Refresh Cache
+            </button>
+        </div>
+    </header>
+
+    <div class="setup-checklist" style="margin-bottom:24px;">
+        <div class="setup-checklist-header">
+            <h2>Standards Guidance</h2>
+            <p>Standards are optional. You can add them for stricter output or continue without them.</p>
+        </div>
+        <div class="setup-checklist-alerts" style="margin-top:0;">
+            <p class="setup-alert setup-alert-muted">Please add your own coding standards or continue without standards.</p>
+        </div>
+    </div>
+    
+    <!-- Standards Grid -->
+    <div class="standards-grid">
+        <!-- Editor -->
+        <div class="standards-editor">
+            <h2 style="margin-bottom: var(--spacing-lg);">
+                <i class="fas fa-edit"></i> Create/Edit Standards
+            </h2>
+            
+            <!-- Template Section -->
+            <div class="template-section">
+                <h4 style="margin-bottom: var(--spacing-sm);">
+                    <i class="fas fa-lightbulb"></i> Quick Templates
+                </h4>
+                <div style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
+                    <button class="btn btn-sm btn-secondary" onclick="loadTemplate('basic')">
+                        Basic Template
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="loadTemplate('php')">
+                        PHP Standards
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="loadTemplate('full')">
+                        Full Template
+                    </button>
+                </div>
+            </div>
+            
+            <form id="standardsForm" onsubmit="uploadStandards(event)">
+                <div class="form-group">
+                    <label for="standardsName">
+                        Standards Name <span class="required">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="standardsName" 
+                        class="form-control" 
+                        placeholder="e.g., Company Standards v1.0"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="standardsContent">
+                        Markdown Content <span class="required">*</span>
+                    </label>
+                    <textarea 
+                        id="standardsContent" 
+                        class="standards-textarea form-control"
+                        placeholder="Write your coding standards in Markdown..."
+                        required
+                    ></textarea>
+                </div>
+                
+                <div style="display: flex; gap: var(--spacing-md);">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Standards
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="clearEditor()">
+                        <i class="fas fa-eraser"></i> Clear
+                    </button>
+                    <label class="btn btn-secondary" style="cursor: pointer;">
+                        <i class="fas fa-file-upload"></i> Upload MD File
+                        <input 
+                            type="file" 
+                            accept=".md" 
+                            style="display: none;"
+                            onchange="handleMDFile(event)"
+                        >
+                    </label>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Preview -->
+        <div class="standards-preview">
+            <h2 style="margin-bottom: var(--spacing-lg);">
+                <i class="fas fa-eye"></i> Preview
+            </h2>
+            <div id="markdownPreview" style="line-height: 1.8;">
+                <p style="color: var(--text-secondary); font-style: italic;">
+                    Start typing to see preview...
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Saved Standards -->
+    <div class="standards-list">
+        <h2>
+            <i class="fas fa-list"></i> Saved Standards
+        </h2>
+        
+        {% if standards %}
+            {% for standard in standards %}
+            <div class="standard-card {% if standard.is_active %}active{% endif %}">
+                <div style="flex: 1;">
+                    <h3 style="margin-bottom: var(--spacing-xs);">
+                        {{ standard.name }}
+                        {% if standard.is_active %}
+                        <span class="badge badge-success" style="margin-left: var(--spacing-sm);">
+                            <i class="fas fa-check"></i> Active
+                        </span>
+                        {% endif %}
+                    </h3>
+                    <div style="font-size: var(--font-size-sm); color: var(--text-secondary);">
+                        <span><i class="far fa-calendar"></i> {{ standard.created_at|date:"M d, Y" }}</span>
+                        {% if standard.php_version %}
+                        <span style="margin-left: var(--spacing-md);">
+                            <i class="fab fa-php"></i> PHP {{ standard.php_version }}
+                        </span>
+                        {% endif %}
+                        {% if standard.framework %}
+                        <span style="margin-left: var(--spacing-md);">
+                            <i class="fas fa-code"></i> {{ standard.framework }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: var(--spacing-sm);">
+                    <button class="btn btn-sm btn-secondary" onclick="viewStandard('{{ standard.id }}')">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                    {% if not standard.is_active %}
+                    <button class="btn btn-sm btn-primary" onclick="activateStandard('{{ standard.id }}')">
+                        <i class="fas fa-check"></i> Activate
+                    </button>
+                    {% endif %}
+                    <button class="btn btn-sm btn-danger" onclick="deleteStandard('{{ standard.id }}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-file-code fa-3x"></i>
+            <p>No standards defined yet</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- View Standard Modal -->
+<div id="viewStandardModal" class="modal-overlay" onclick="closeModalOnOverlay(event)">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalStandardName">
+                <i class="fas fa-file-code"></i> Standard Details
+            </h2>
+            <button class="btn btn-sm btn-secondary" onclick="closeViewModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="modalStandardMetadata" class="standard-metadata"></div>
+            <div id="modalStandardContent" class="standard-content"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeViewModal()">
+                <i class="fas fa-times"></i> Close
+            </button>
+            <button class="btn btn-primary" onclick="downloadStandard()">
+                <i class="fas fa-download"></i> Download
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="{% static 'js/api-client.js' %}"></script>
+<script>
+// Live preview
+const contentTextarea = document.getElementById('standardsContent');
+const previewDiv = document.getElementById('markdownPreview');
+
+contentTextarea.addEventListener('input', () => {
+    const markdown = contentTextarea.value;
+    if (markdown) {
+        previewDiv.innerHTML = marked.parse(markdown);
+    } else {
+        previewDiv.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">Start typing to see preview...</p>';
+    }
+});
+
+// Load template
+function loadTemplate(type) {
+    let template = '';
+    
+    if (type === 'basic') {
+        template = `# Coding Standards
+
+## Overview
+Brief description of your coding standards.
+
+## General Guidelines
+- Write clean, readable code
+- Follow naming conventions
+- Add comments where necessary
+
+## Languages
+### PHP
+- Version: 8.0+
+- Use prepared statements
+
+### HTML
+- Use semantic HTML5
+- Proper indentation
+
+### CSS
+- Use BEM naming
+- Mobile-first approach
+
+### JavaScript
+- ES6+ syntax
+- Proper error handling
+`;
+    } else if (type === 'php') {
+        template = `# PHP Coding Standards
+
+## Version
+- PHP Version: 8.0+
+
+## Database
+- Engine: InnoDB
+- Charset: utf8mb4
+- Always use prepared statements
+
+## Security
+- SQL injection prevention (prepared statements)
+- XSS prevention (output escaping)
+- CSRF protection
+
+## Naming Conventions
+- Variables: camelCase
+- Functions: camelCase
+- Classes: PascalCase
+- Constants: UPPER_CASE
+
+## Best Practices
+- Use type declarations
+- Handle errors properly
+- Write PHPDoc comments
+`;
+    } else if (type === 'full') {
+        template = `# Company Coding Standards
+
+## General Guidelines
+- Write clean, maintainable code
+- Follow SOLID principles
+- Use meaningful variable names
+- Add comments for complex logic
+
+## PHP Standards
+### Version & Configuration
+- PHP Version: 8.0+
+- Error Reporting: Enabled in development
+- Display Errors: Disabled in production
+
+### Database
+- Engine: InnoDB
+- Charset: utf8mb4
+- Use prepared statements for all queries
+- Implement proper error handling
+
+### Security
+- SQL Injection: Use prepared statements
+- XSS: Escape all output
+- CSRF: Implement token validation
+- Password: Use password_hash()
+
+### Naming Conventions
+- Variables: \`$camelCase\`
+- Functions: \`camelCase()\`
+- Classes: \`PascalCase\`
+- Constants: \`UPPER_CASE\`
+
+## HTML Standards
+- Use semantic HTML5 elements
+- Include ARIA attributes for accessibility
+- Proper nesting and indentation
+- Close all tags
+
+## CSS Standards
+- Methodology: BEM
+- Mobile-first responsive design
+- Use CSS variables for theming
+- Avoid !important
+
+## JavaScript Standards
+- Version: ES6+
+- Use const/let, not var
+- Implement error handling
+- Validate on both client and server
+
+## Database Standards
+- Table names: snake_case
+- Primary key: id (INT AUTO_INCREMENT)
+- Timestamps: created_at, updated_at
+- Soft deletes: deleted_at (if applicable)
+
+## Code Review Checklist
+- [ ] Code follows naming conventions
+- [ ] No security vulnerabilities
+- [ ] Proper error handling
+- [ ] Code is well-commented
+- [ ] Tests are included
+`;
+    }
+    
+    document.getElementById('standardsContent').value = template;
+    contentTextarea.dispatchEvent(new Event('input'));
+}
+
+// Upload standards
+async function uploadStandards(event) {
+    event.preventDefault();
+    
+    const name = document.getElementById('standardsName').value.trim();
+    const content = document.getElementById('standardsContent').value.trim();
+    
+    if (!name || !content) {
+        showNotification('Please fill in all required fields', 'warning');
+        return;
+    }
+    
+    // Create MD file blob
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const file = new File([blob], name + '.md', { type: 'text/markdown' });
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('name', name);
+    
+    try {
+        const response = await api.upload('/standards/upload/', formData);
+        
+        if (response.success) {
+            showNotification('Standards saved successfully!', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showNotification('Failed to save standards', 'error');
+        }
+    } catch (error) {
+        showNotification('Error saving standards', 'error');
+    }
+}
+
+// Handle MD file upload
+function handleMDFile(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('standardsContent').value = e.target.result;
+            contentTextarea.dispatchEvent(new Event('input'));
+            
+            // Auto-fill name from filename
+            const baseName = file.name.replace('.md', '');
+            document.getElementById('standardsName').value = baseName;
+        };
+        reader.readAsText(file);
+    }
+}
+
+// Clear editor
+function clearEditor() {
+    document.getElementById('standardsForm').reset();
+    previewDiv.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">Start typing to see preview...</p>';
+}
+
+// View standard
+let currentStandard = null;
+
+async function viewStandard(standardId) {
+    try {
+        const response = await api.getStandard(standardId);
+        
+        if (response.success) {
+            currentStandard = response.data;
+            displayStandardModal(currentStandard);
+        } else {
+            showNotification('Failed to load standard details', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading standard:', error);
+        showNotification('Error loading standard details', 'error');
+    }
+}
+
+function displayStandardModal(standard) {
+    // Set modal title
+    document.getElementById('modalStandardName').innerHTML = `
+        <i class="fas fa-file-code"></i> ${standard.name}
+    `;
+    
+    // Set metadata
+    const metadata = [];
+    
+    if (standard.created_at) {
+        const date = new Date(standard.created_at);
+        metadata.push(`
+            <div class="metadata-item">
+                <i class="far fa-calendar"></i>
+                <span>Created: ${date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+            </div>
+        `);
+    }
+    
+    if (standard.php_version) {
+        metadata.push(`
+            <div class="metadata-item">
+                <i class="fab fa-php"></i>
+                <span>PHP ${standard.php_version}</span>
+            </div>
+        `);
+    }
+    
+    if (standard.framework) {
+        metadata.push(`
+            <div class="metadata-item">
+                <i class="fas fa-code"></i>
+                <span>${standard.framework}</span>
+            </div>
+        `);
+    }
+    
+    if (standard.css_framework) {
+        metadata.push(`
+            <div class="metadata-item">
+                <i class="fab fa-css3-alt"></i>
+                <span>${standard.css_framework}</span>
+            </div>
+        `);
+    }
+    
+    if (standard.db_engine) {
+        metadata.push(`
+            <div class="metadata-item">
+                <i class="fas fa-database"></i>
+                <span>${standard.db_engine}</span>
+            </div>
+        `);
+    }
+    
+    if (standard.is_active) {
+        metadata.push(`
+            <div class="metadata-item">
+                <span class="badge badge-success">
+                    <i class="fas fa-check"></i> Active
+                </span>
+            </div>
+        `);
+    }
+    
+    document.getElementById('modalStandardMetadata').innerHTML = metadata.join('');
+    
+    // Set content (render markdown)
+    const content = standard.content || 'No content available';
+    document.getElementById('modalStandardContent').innerHTML = marked.parse(content);
+    
+    // Show modal
+    document.getElementById('viewStandardModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeViewModal() {
+    document.getElementById('viewStandardModal').classList.remove('show');
+    document.body.style.overflow = '';
+    currentStandard = null;
+}
+
+function closeModalOnOverlay(event) {
+    if (event.target.classList.contains('modal-overlay')) {
+        closeViewModal();
+    }
+}
+
+function downloadStandard() {
+    if (!currentStandard) return;
+    
+    const content = currentStandard.content || '';
+    const filename = `${currentStandard.name}.md`;
+    
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showNotification('Standard downloaded successfully', 'success');
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        closeViewModal();
+    }
+});
+
+// Activate standard
+async function activateStandard(standardId) {
+    const response = await api.post(`/standards/${standardId}/activate/`, {});
+    
+    if (response.success) {
+        showNotification('Standards activated', 'success');
+        location.reload();
+    } else {
+        showNotification('Failed to activate standards', 'error');
+    }
+}
+
+// Delete standard
+async function deleteStandard(standardId) {
+    if (!confirm('Delete this standard?')) return;
+    
+    const response = await api.delete(`/standards/${standardId}/`);
+    
+    if (response.success) {
+        showNotification('Standard deleted', 'success');
+        location.reload();
+    } else {
+        showNotification('Failed to delete standard', 'error');
+    }
+}
+
+// Refresh cache
+async function refreshCache() {
+    const btn = document.getElementById('refreshCacheBtn');
+    const originalHTML = btn.innerHTML;
+    
+    // Show loading state
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+    
+    try {
+        const response = await api.post('/standards/refresh_cache/', {});
+        
+        if (response.success) {
+            showNotification(response.data.message || 'Cache refreshed successfully!', 'success');
+            btn.innerHTML = '<i class="fas fa-check"></i> Refreshed!';
+            
+            // Reset button after 2 seconds
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }, 2000);
+        } else {
+            showNotification('Failed to refresh cache', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+        }
+    } catch (error) {
+        console.error('Cache refresh error:', error);
+        showNotification('Error refreshing cache', 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-info-circle"></i>
+        ${message}
+        <button class="close-btn" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    let container = document.querySelector('.messages-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'messages-container';
+        document.body.appendChild(container);
+    }
+
+    container.appendChild(notification);
+    setTimeout(() => notification.remove(), 5000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "source_files": [
+    "api/tests/fixtures/sample_company_codebase/frmArea.php",
+    "api/tests/fixtures/sample_company_codebase/frmSubArea.php",
+    "api/tests/fixtures/sample_company_codebase/frmCustomer.php"
+  ],
+  "section_order": [
+    "BOOTSTRAP_PHP",
+    "AJAX_HANDLERS_PHP",
+    "CRUD_LOGIC_PHP",
+    "HEAD_HTML",
+    "ENTITY_JS",
+    "BODY_OPEN_HTML",
+    "FORM_HTML",
+    "BODY_END_HTML"
+  ],
+  "required_includes": {
+    "top": [
+      "include/config.inc.php"
+    ],
+    "body": [
+      "include/topmenu.php",
+      "include/sidemenu.php",
+      "include/formheader.php"
+    ],
+    "footer": [
+      "include/footer.php"
+    ]
+  },
+  "audit_columns": [
+    "CreationDateTime",
+    "Comp_Code",
+    "UserId",
+    "Login_ID"
+  ],
+  "js_submit_chain": {
+    "form_id": "frm",
+    "button_id": "btnSave",
+    "hidden_mode_field": "txtmode",
+    "hidden_action_field": "CTRL_HID_VALUE",
+    "validation_event": "success.form.fv",
+    "submit_function": "btnsave_click"
+  },
+  "master_detail_scaffold": {
+    "hidden_counter_field": "TXTCOUNTACC",
+    "grid_array_init": [
+      "gridData",
+      "gridIndex"
+    ],
+    "detail_save_loop": "for($i=0;$i<=$_REQUEST['TXTCOUNTACC'];$i++)",
+    "detail_update_pattern": "db_delete($sub_table, ...) followed by db_insert() loop"
+  },
+  "session_contract": {
+    "user": "user_id",
+    "company": "comp_code",
+    "login": "login_id"
+  },
+  "getmaxid_contract": {
+    "php_return": "scalar",
+    "js_key": null
+  },
+  "form_contract": {
+    "id": "frm",
+    "name": "frm",
+    "method": "POST",
+    "class": "form-horizontal",
+    "footer_count": 1,
+    "edit_binding_variable": "obj"
+  }
+}

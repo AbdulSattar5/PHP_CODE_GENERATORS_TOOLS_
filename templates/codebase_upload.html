@@ -1,0 +1,643 @@
+<!-- templates/codebase_upload.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Upload Codebase - GenCode AI{% endblock %}
+
+{% block extra_css %}{% endblock %}
+{% block content %}
+<div class="page-shell">
+    <header class="page-header">
+        <div>
+            <h1 class="page-title"><i class="fas fa-database"></i> Company Codebase</h1>
+            <p class="page-subtitle">Upload your own PHP project ZIP so GenCode AI can learn your patterns safely.</p>
+        </div>
+    </header>
+
+    <div class="setup-checklist" style="margin-bottom:24px;">
+        <div class="setup-checklist-header">
+            <h2>Upload Guidance</h2>
+            <p>Private ZIPs, extracted code, and vector data are stored in runtime folders that are excluded from Git.</p>
+        </div>
+        <div class="setup-checklist-alerts" style="margin-top:0;">
+            <p class="setup-alert setup-alert-muted">Upload your own PHP project ZIP so GenCode AI can learn your company patterns.</p>
+            <p class="setup-alert setup-alert-muted">If indexing fails, the app keeps the upload status visible and avoids exposing filesystem paths.</p>
+        </div>
+    </div>
+    
+    <!-- Upload Section -->
+    <div class="card upload-section">
+        <h2 style="margin-bottom: var(--spacing-lg);">
+            <i class="fas fa-upload"></i> Upload New Codebase
+        </h2>
+        
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+            <p class="upload-text">Drag & Drop or Click to Upload</p>
+            <p class="upload-hint">
+                Upload a ZIP file containing your PHP, HTML, CSS, JS files<br>
+                Maximum size: 100MB
+            </p>
+            <input 
+                type="file" 
+                id="fileInput" 
+                class="file-input" 
+                accept=".zip"
+                onchange="handleFileSelect(event)"
+            >
+        </div>
+        
+        <!-- Upload Form (hidden initially) -->
+        <div id="uploadForm" style="display: none; margin-top: var(--spacing-lg);">
+            <div class="form-group">
+                <label for="codebaseName">
+                    Codebase Name <span class="required">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="codebaseName" 
+                    class="form-control" 
+                    placeholder="e.g., ERP System v2.0"
+                >
+            </div>
+            
+            <div class="form-group">
+                <label for="codebaseDescription">
+                    Description (Optional)
+                </label>
+                <textarea 
+                    id="codebaseDescription" 
+                    class="form-control" 
+                    rows="2"
+                    placeholder="Brief description..."
+                ></textarea>
+            </div>
+            
+            <div class="selected-file">
+                <i class="fas fa-file-archive"></i>
+                <span id="fileName"></span>
+                <span id="fileSize"></span>
+            </div>
+            
+            <div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-lg);">
+                <button class="btn btn-primary" onclick="uploadCodebase()">
+                    <i class="fas fa-upload"></i> Upload & Index
+                </button>
+                <button class="btn btn-secondary" onclick="cancelUpload()">
+                    Cancel
+                </button>
+            </div>
+            
+            <!-- Progress -->
+            <div id="uploadProgress" style="display: none; margin-top: var(--spacing-lg);">
+                <p><strong>Uploading and indexing...</strong></p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <p style="font-size: var(--font-size-sm); color: var(--text-secondary); margin-top: var(--spacing-sm);">
+                    This may take a few minutes depending on the size of your codebase.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Codebases List -->
+    <div>
+        <h2 style="margin-bottom: var(--spacing-lg);">
+            <i class="fas fa-list"></i> Uploaded Codebases
+        </h2>
+        
+        {% if codebases %}
+        <div class="codebases-list">
+            {% for codebase in codebases %}
+            <div class="codebase-card">
+                <div class="codebase-card-icon">
+                    <i class="fas fa-archive"></i>
+                </div>
+                
+                <div class="codebase-card-info">
+                    <h3 class="codebase-card-title">{{ codebase.name }}</h3>
+                    <div class="codebase-card-meta">
+                        <span>
+                            <i class="far fa-calendar"></i>
+                            {{ codebase.created_at|date:"M d, Y" }}
+                        </span>
+                        <span>
+                            <i class="fas fa-file"></i>
+                            {{ codebase.total_files }} files
+                        </span>
+                        <span class="badge {% if codebase.is_indexed %}badge-success{% elif codebase.index_status == 'failed' %}badge-danger{% else %}badge-warning{% endif %}">
+                            {% if codebase.is_indexed %}
+                                <i class="fas fa-check"></i> Indexed
+                            {% elif codebase.index_status == 'failed' %}
+                                <i class="fas fa-triangle-exclamation"></i> Failed
+                            {% else %}
+                                <i class="fas fa-sync fa-spin"></i> Indexing
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    {% if codebase.index_status == 'failed' and codebase.index_error %}
+                    <p style="font-size: var(--font-size-sm); color: #fca5a5; margin-top: var(--spacing-sm);">
+                        {{ codebase.index_error }}
+                    </p>
+                    {% elif not codebase.is_indexed %}
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ codebase.indexed_files|floatformat:0|add:'0' }}%"></div>
+                    </div>
+                    <p style="font-size: var(--font-size-xs); color: var(--text-secondary); margin-top: var(--spacing-xs);">
+                        {{ codebase.indexed_files }} / {{ codebase.total_files }} files indexed
+                    </p>
+                    {% endif %}
+                </div>
+                
+                <div class="codebase-card-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="viewCodebase('{{ codebase.id }}')">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                    {% if codebase.is_indexed %}
+                    <button class="btn btn-sm btn-info" onclick="reindexCodebase('{{ codebase.id }}', '{{ codebase.name }}')">
+                        <i class="fas fa-sync"></i> Re-index
+                    </button>
+                    {% endif %}
+                    <button class="btn btn-sm btn-danger" onclick="deleteCodebase('{{ codebase.id }}', '{{ codebase.name }}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-database fa-3x"></i>
+            <p>No codebases uploaded yet</p>
+            <p style="color: var(--text-secondary); font-size: var(--font-size-sm);">
+                Upload your company's code to help AI learn your coding patterns
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api-client.js' %}"></script>
+<script>
+let selectedFile = null;
+
+// Auto-refresh for indexing codebases
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if there are any codebases currently indexing
+    checkAndUpdateIndexingStatus();
+});
+
+async function checkAndUpdateIndexingStatus() {
+    // Find all codebase cards
+    const codebaseCards = document.querySelectorAll('.codebase-card');
+    let hasIndexing = false;
+    
+    for (const card of codebaseCards) {
+        const badge = card.querySelector('.badge-warning');
+        if (badge) {
+            hasIndexing = true;
+            
+            // Extract codebase ID from the View button
+            const viewButton = card.querySelector('button[onclick*="viewCodebase"]');
+            if (viewButton) {
+                const onclickAttr = viewButton.getAttribute('onclick');
+                const match = onclickAttr.match(/viewCodebase\('([^']+)'\)/);
+                if (match) {
+                    const codebaseId = match[1];
+                    updateCodebaseCard(codebaseId, card);
+                }
+            }
+        }
+    }
+    
+    // If there are indexing codebases, poll every 5 seconds
+    if (hasIndexing) {
+        console.log('🔄 Found indexing codebases, will check again in 5 seconds...');
+        setTimeout(checkAndUpdateIndexingStatus, 5000);
+    } else {
+        console.log('✅ All codebases indexed!');
+    }
+}
+
+async function updateCodebaseCard(codebaseId, card) {
+    try {
+        const response = await api.getCodebaseStatus(codebaseId);
+        
+        if (response.success) {
+            const data = response.data;
+            
+            // Update file count
+            const fileCountSpan = card.querySelector('.codebase-card-meta span:nth-child(2)');
+            if (fileCountSpan) {
+                fileCountSpan.innerHTML = `<i class="fas fa-file"></i> ${data.total_files} files`;
+            }
+            
+            // Update badge
+            const badge = card.querySelector('.badge');
+            if (badge) {
+                if (data.is_indexed) {
+                    badge.className = 'badge badge-success';
+                    badge.innerHTML = '<i class="fas fa-check"></i> Indexed';
+                    
+                    // Remove progress bar
+                    const progressBar = card.querySelector('.progress-bar');
+                    if (progressBar) {
+                        progressBar.parentElement.remove();
+                    }
+                    
+                    // Show success notification
+                    showNotification(`✅ ${data.name} indexing complete! ${data.indexed_files} files indexed.`, 'success');
+                    
+                    // Reload page after 2 seconds to show Re-index button
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    // Update progress bar
+                    const progressFill = card.querySelector('.progress-fill');
+                    if (progressFill) {
+                        progressFill.style.width = data.progress + '%';
+                    }
+                    
+                    // Update progress text
+                    const progressText = card.querySelector('.progress-bar + p');
+                    if (progressText) {
+                        progressText.textContent = `${data.indexed_files} / ${data.total_files} files indexed`;
+                    }
+                    
+                    console.log(`📊 ${data.name}: ${data.indexed_files}/${data.total_files} files (${Math.round(data.progress)}%)`);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error updating codebase card:', error);
+    }
+}
+
+// Drag and drop handlers
+const uploadArea = document.getElementById('uploadArea');
+
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('dragover');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        handleFile(files[0]);
+    }
+});
+
+// File selection
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        handleFile(file);
+    }
+}
+
+function handleFile(file) {
+    if (!file.name.endsWith('.zip')) {
+        showNotification('Please upload a ZIP file', 'error');
+        return;
+    }
+    
+    // Validate file size (100MB limit)
+    const maxSize = 100 * 1024 * 1024; // 100MB in bytes
+    if (file.size > maxSize) {
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        showNotification(`File size (${fileSizeMB}MB) exceeds maximum limit of 100MB`, 'error');
+        return;
+    }
+    
+    selectedFile = file;
+    
+    // Show upload form
+    document.getElementById('uploadForm').style.display = 'block';
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = ` (${formatFileSize(file.size)})`;
+    
+    // Auto-fill name
+    const baseName = file.name.replace('.zip', '');
+    document.getElementById('codebaseName').value = baseName;
+}
+
+function cancelUpload() {
+    selectedFile = null;
+    document.getElementById('uploadForm').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+    document.getElementById('codebaseName').value = '';
+    document.getElementById('codebaseDescription').value = '';
+}
+
+// Upload codebase
+async function uploadCodebase() {
+    if (!selectedFile) {
+        showNotification('Please select a file', 'warning');
+        return;
+    }
+    
+    const name = document.getElementById('codebaseName').value.trim();
+    
+    if (!name) {
+        showNotification('Please enter a codebase name', 'warning');
+        return;
+    }
+    
+    const description = document.getElementById('codebaseDescription').value.trim();
+    
+    // Show progress
+    document.getElementById('uploadProgress').style.display = 'block';
+    
+    // Create FormData
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('name', name);
+    formData.append('description', description);
+    
+    // Real progress tracking
+    const progressFill = document.getElementById('progressFill');
+    
+    try {
+        const response = await api.upload('/codebases/upload/', formData, (progress) => {
+            // Update progress bar with real upload progress (0-90%)
+            progressFill.style.width = Math.min(progress, 90) + '%';
+        });
+        
+        // Upload complete, show 100%
+        progressFill.style.width = '100%';
+        
+        if (response.success) {
+            const data = response.data;
+            let message = 'Codebase uploaded successfully!';
+            
+            // Check for skipped files
+            if (data.skipped_files && data.skipped_files.length > 0) {
+                message += `\n\nWarning: ${data.skipped_files.length} file(s) were skipped.`;
+                console.log('Skipped files:', data.skipped_files);
+                
+                // Show detailed warning
+                showNotification(
+                    `Codebase uploaded! ${data.indexed_files}/${data.total_files} files indexed. ${data.skipped_files.length} files skipped.`,
+                    'warning'
+                );
+            } else {
+                showNotification(message, 'success');
+            }
+            
+            // Start polling for indexing status if not fully indexed
+            if (data.codebase_id && data.indexed_files < data.total_files) {
+                pollIndexingStatus(data.codebase_id);
+            } else {
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            }
+        } else {
+            // Parse error message properly
+            let errorMsg = 'Upload failed';
+            
+            if (response.error) {
+                if (typeof response.error === 'string') {
+                    errorMsg = response.error;
+                } else if (typeof response.error === 'object') {
+                    // Handle Django validation errors
+                    if (response.error.file) {
+                        errorMsg = `File error: ${response.error.file[0]}`;
+                    } else if (response.error.name) {
+                        errorMsg = `Name error: ${response.error.name[0]}`;
+                    } else if (response.error.error) {
+                        errorMsg = response.error.error;
+                    } else {
+                        // Fallback to first error found
+                        const firstKey = Object.keys(response.error)[0];
+                        const firstError = response.error[firstKey];
+                        errorMsg = Array.isArray(firstError) ? firstError[0] : firstError;
+                    }
+                }
+            }
+            
+            showNotification(errorMsg, 'error');
+            document.getElementById('uploadProgress').style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        showNotification('Upload failed: ' + (error.message || 'Unknown error'), 'error');
+        document.getElementById('uploadProgress').style.display = 'none';
+    }
+}
+
+// View codebase
+async function viewCodebase(codebaseId) {
+    try {
+        const response = await api.getCodebaseStatus(codebaseId);
+        
+        if (response.success) {
+            const data = response.data;
+            
+            // Generate file type badges
+            let fileTypeBadges = '';
+            const fileTypeIcons = {
+                'php': '<i class="fab fa-php"></i> PHP',
+                'html': '<i class="fab fa-html5"></i> HTML',
+                'css': '<i class="fab fa-css3-alt"></i> CSS',
+                'js': '<i class="fab fa-js"></i> JS',
+                'sql': '<i class="fas fa-database"></i> SQL'
+            };
+            
+            if (data.file_types) {
+                for (const [type, count] of Object.entries(data.file_types)) {
+                    if (count > 0) {
+                        fileTypeBadges += `
+                            <span class="badge badge-info" style="margin: 5px;">
+                                ${fileTypeIcons[type] || type.toUpperCase()}: ${count}
+                            </span>
+                        `;
+                    }
+                }
+            }
+            
+            // Create modal HTML
+            const modalHTML = `
+                <div class="modal-overlay" id="codebaseModal" onclick="closeCodebaseModal()" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+                    <div class="modal-content" onclick="event.stopPropagation()" style="background: white; border-radius: 10px; padding: 30px; max-width: 600px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 style="margin: 0;"><i class="fas fa-database"></i> ${data.name}</h3>
+                            <button onclick="closeCodebaseModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div>
+                            <h4 style="margin-bottom: 10px;">Indexing Status</h4>
+                            <div class="progress-bar" style="margin: 10px 0;">
+                                <div class="progress-fill" style="width: ${data.progress}%"></div>
+                            </div>
+                            <p style="font-size: 14px; color: #666;">
+                                ${data.indexed_files} / ${data.total_files} files indexed (${Math.round(data.progress)}%)
+                            </p>
+                            
+                            ${fileTypeBadges ? `
+                                <div style="margin-top: 20px;">
+                                    <h4 style="margin-bottom: 10px;">File Types</h4>
+                                    <div>${fileTypeBadges}</div>
+                                </div>
+                            ` : ''}
+                            
+                            <div style="margin-top: 20px;">
+                                <span class="badge ${data.is_indexed ? 'badge-success' : 'badge-warning'}">
+                                    ${data.is_indexed ? '<i class="fas fa-check"></i> Fully Indexed' : '<i class="fas fa-sync fa-spin"></i> Indexing...'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        } else {
+            showNotification('Failed to load codebase details', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error loading codebase details', 'error');
+    }
+}
+
+function closeCodebaseModal() {
+    const modal = document.getElementById('codebaseModal');
+    if (modal) modal.remove();
+}
+
+// Poll indexing status
+function pollIndexingStatus(codebaseId) {
+    let pollCount = 0;
+    const maxPolls = 60; // Poll for max 5 minutes (60 * 5 seconds)
+    
+    const pollInterval = setInterval(async () => {
+        pollCount++;
+        
+        try {
+            const response = await api.getCodebaseStatus(codebaseId);
+            
+            if (response.success) {
+                const data = response.data;
+                const progress = data.progress || 0;
+                
+                // Update progress bar if visible
+                const progressFill = document.getElementById('progressFill');
+                if (progressFill) {
+                    progressFill.style.width = progress + '%';
+                }
+                
+                // Check if indexing is complete
+                if (data.is_indexed || progress >= 100) {
+                    clearInterval(pollInterval);
+                    showNotification('Indexing complete!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else if (pollCount >= maxPolls) {
+                    clearInterval(pollInterval);
+                    showNotification('Indexing is taking longer than expected. Please refresh the page.', 'warning');
+                }
+            } else {
+                // If API fails, stop polling
+                clearInterval(pollInterval);
+            }
+        } catch (error) {
+            console.error('Polling error:', error);
+            clearInterval(pollInterval);
+        }
+    }, 5000); // Poll every 5 seconds
+}
+
+// Delete codebase
+async function deleteCodebase(codebaseId, codebaseName) {
+    if (!confirm(`Delete "${codebaseName}"? This will remove all indexed patterns.`)) {
+        return;
+    }
+    
+    const response = await api.delete(`/codebases/${codebaseId}/`);
+    
+    if (response.success) {
+        showNotification('Codebase deleted successfully', 'success');
+        location.reload();
+    } else {
+        showNotification('Failed to delete codebase', 'error');
+    }
+}
+
+// Re-index codebase
+async function reindexCodebase(codebaseId, codebaseName) {
+    if (!confirm(`Re-index "${codebaseName}"? This will rebuild all patterns from the uploaded files.`)) {
+        return;
+    }
+    
+    showNotification('Re-indexing started... This may take a few minutes.', 'info');
+    
+    try {
+        const response = await api.post(`/codebases/${codebaseId}/reindex/`, {});
+        
+        if (response.success) {
+            const data = response.data;
+            
+            let message = `Re-indexing complete! ${data.indexed_files}/${data.total_files} files indexed.`;
+            
+            if (data.skipped_files && data.skipped_files.length > 0) {
+                message += ` ${data.skipped_files.length} files skipped.`;
+                showNotification(message, 'warning');
+            } else {
+                showNotification(message, 'success');
+            }
+            
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showNotification('Re-indexing failed: ' + (response.error || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Re-index error:', error);
+        showNotification('Re-indexing failed', 'error');
+    }
+}
+
+// Utility functions
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-info-circle"></i>
+        ${message}
+        <button class="close-btn" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    let container = document.querySelector('.messages-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'messages-container';
+        document.body.appendChild(container);
+    }
+
+    container.appendChild(notification);
+    setTimeout(() => notification.remove(), 5000);
+}
+</script>
+{% endblock %}

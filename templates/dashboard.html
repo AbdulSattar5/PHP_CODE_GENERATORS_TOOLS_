@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Home - GenCode AI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/chat.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-home">
+    <h1>What can I help with?</h1>
+
+    <div class="dashboard-input-wrap" style="width:100%;max-width:768px;">
+        <form id="dashboardChatForm" action="{% url 'code_generation' %}" method="get">
+            <div class="chat-input-inner">
+                <textarea id="dashboardInput" class="chat-input" rows="1" placeholder="Message GenCode AI..."></textarea>
+                <button type="submit" class="send-btn" id="dashboardSendBtn" aria-label="Send">
+                    <i class="fas fa-arrow-up"></i>
+                </button>
+            </div>
+            <input type="hidden" name="q" id="dashboardQuery" value="">
+        </form>
+        <p class="chat-disclaimer">GenCode AI can make mistakes. Check important info.</p>
+    </div>
+
+    <div class="dashboard-chips">
+        <button type="button" class="dashboard-chip" data-prompt="Create a student registration form with name, email, age, and phone number">Generate Code</button>
+        <button type="button" class="dashboard-chip" data-href="{% url 'codebase_upload' %}">Upload Codebase</button>
+        <button type="button" class="dashboard-chip" data-href="{% url 'standards_upload' %}">Coding Standards</button>
+        <button type="button" class="dashboard-chip" data-href="{% url 'projects' %}">My Projects</button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('dashboardChatForm');
+    const input = document.getElementById('dashboardInput');
+    const hidden = document.getElementById('dashboardQuery');
+    const sendBtn = document.getElementById('dashboardSendBtn');
+
+    function syncSend() {
+        const hasText = input.value.trim().length > 0;
+        sendBtn.classList.toggle('is-ready', hasText);
+        sendBtn.disabled = !hasText;
+    }
+
+    input.addEventListener('input', () => {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 200) + 'px';
+        syncSend();
+    });
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (input.value.trim()) form.requestSubmit();
+        }
+    });
+
+    form.addEventListener('submit', (e) => {
+        const text = input.value.trim();
+        if (!text) { e.preventDefault(); return; }
+        hidden.value = text;
+    });
+
+    document.querySelectorAll('.dashboard-chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+            const href = chip.getAttribute('data-href');
+            const prompt = chip.getAttribute('data-prompt');
+            if (href) { window.location.href = href; return; }
+            if (prompt) {
+                input.value = prompt;
+                syncSend();
+                form.requestSubmit();
+            }
+        });
+    });
+
+    syncSend();
+});
+</script>
+{% endblock %}

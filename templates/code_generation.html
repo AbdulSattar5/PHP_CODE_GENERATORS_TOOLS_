@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Generate Code - GenCode AI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/chat.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-shell page-shell--chat">
+{{ generation_setup|json_script:"generation-setup-data" }}
+
+<section class="setup-overview">
+    <div class="setup-overview-header">
+        <div>
+            <h1>Generate PHP Forms</h1>
+            <p>Set up your workspace once, then generate company-style PHP forms from natural language prompts.</p>
+        </div>
+    </div>
+
+    <div class="setup-card-grid">
+        <article class="setup-card">
+            <span class="setup-step">1</span>
+            <h2>Configure API Key</h2>
+            <p>Add your own OpenAI API key in environment variables before generating code.</p>
+        </article>
+        <article class="setup-card">
+            <span class="setup-step">2</span>
+            <h2>Upload Codebase</h2>
+            <p>Upload your own PHP project ZIP so GenCode AI can learn your company patterns.</p>
+        </article>
+        <article class="setup-card">
+            <span class="setup-step">3</span>
+            <h2>Add Standards</h2>
+            <p>Optionally add your coding standards for stricter output.</p>
+        </article>
+        <article class="setup-card">
+            <span class="setup-step">4</span>
+            <h2>Generate Code</h2>
+            <p>After setup, create PHP forms from natural language prompts.</p>
+        </article>
+    </div>
+
+    <div class="setup-checklist" id="generationSetupChecklist">
+        <div class="setup-checklist-header">
+            <h2>Setup Checklist</h2>
+            <p>GenCode AI checks these requirements before sending a generation request.</p>
+        </div>
+        <div class="setup-checklist-grid">
+            <div class="setup-checklist-item" data-setup-key="openai_api_key_configured">
+                <span class="setup-checklist-label">API key configured</span>
+                <span class="setup-status-badge" id="setupStatusApi">No</span>
+            </div>
+            <div class="setup-checklist-item" data-setup-key="codebase_indexed">
+                <span class="setup-checklist-label">Codebase uploaded/indexed</span>
+                <span class="setup-status-badge" id="setupStatusCodebase">No</span>
+            </div>
+            <div class="setup-checklist-item" data-setup-key="standards_available">
+                <span class="setup-checklist-label">Standards available</span>
+                <span class="setup-status-badge" id="setupStatusStandards">No</span>
+            </div>
+            <div class="setup-checklist-item" data-setup-key="project_selected">
+                <span class="setup-checklist-label">Project selected</span>
+                <span class="setup-status-badge" id="setupStatusProject">No</span>
+            </div>
+        </div>
+        <div class="setup-checklist-alerts" id="setupChecklistAlerts">
+            {% if not generation_setup.openai_api_key_configured %}
+            <p class="setup-alert setup-alert-warning">Please configure your own OpenAI API key before generating code.</p>
+            {% endif %}
+            {% if not generation_setup.codebase_uploaded %}
+            <p class="setup-alert setup-alert-muted">Please upload your own company codebase first.</p>
+            {% elif generation_setup.codebase_failed %}
+            <p class="setup-alert setup-alert-warning">Codebase indexing failed. Please check your ZIP file and upload again.</p>
+            {% elif not generation_setup.codebase_indexed %}
+            <p class="setup-alert setup-alert-muted">Please upload and index your own codebase before using company-pattern generation.</p>
+            {% endif %}
+            {% if not generation_setup.standards_available %}
+            <p class="setup-alert setup-alert-muted">Please add your own coding standards or continue without standards.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<div class="cgpt-generation-page generation-layout">
+    <section class="chat-panel chat-page chat-layout">
+        <div class="gen-toolbar">
+            <span class="gen-toolbar-label">Project</span>
+            <select id="projectSelect" class="form-select" title="Project">
+                <option value="">-- Select project --</option>
+                {% for project in projects %}
+                <option value="{{ project.id }}" {% if selected_project_id and selected_project_id == project.id|stringformat:"s" %}selected{% endif %}>{{ project.name }}</option>
+                {% endfor %}
+            </select>
+            <span class="gen-toolbar-label">Codebase</span>
+            <select id="codebaseSelect" class="form-select" title="Codebase">
+                <option value="">All codebases</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="showNewProjectModal()">
+                <i class="fas fa-plus"></i> New Project
+            </button>
+            <button type="button" class="tools-toggle-btn btn btn-sm btn-secondary" id="composerOptionsBtn" onclick="toggleComposerOptions(event)" aria-expanded="false">
+                <i class="fas fa-sliders-h"></i> Tools
+            </button>
+        </div>
+
+        <div class="tools-popover" id="composerOptionsPopover" hidden>
+            <label class="checkbox-label">
+                <input type="checkbox" id="usePatterns" checked>
+                <span>Use Company Patterns</span>
+                <span id="patternsCount" class="text-muted" style="font-size:12px;margin-left:4px;"></span>
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" id="useStandards" checked>
+                <span>Apply Standards</span>
+            </label>
+            <div class="form-group" style="margin-top:12px;margin-bottom:0;">
+                <label for="databaseConnection">Database Connection</label>
+                <select id="databaseConnection" class="form-select">
+                    <option value="">No database</option>
+                </select>
+                <a href="/database-connections/" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent);">Manage connections</a>
+                <label class="checkbox-label" style="margin-top:8px;">
+                    <input type="checkbox" id="autoExecuteSQL">
+                    <span>Auto-Execute SQL</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-empty-state" id="chatEmptyState">
+                <h2>What can I help with?</h2>
+                <div class="suggestion-chips">
+                    <button type="button" class="suggestion-chip" onclick="useExample('Create a student registration form with name, email, age, and phone number')">Generate Code</button>
+                    <button type="button" class="suggestion-chip" onclick="useExample('Build a product inventory system with category, price, and stock')">Product Inventory</button>
+                    <button type="button" class="suggestion-chip" onclick="useExample('Create an employee attendance tracker with check-in/check-out')">Attendance Tracker</button>
+                    <button type="button" class="suggestion-chip" onclick="window.location.href='{% url 'codebase_upload' %}'">Upload Codebase</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-area chat-composer">
+            <form id="composerForm" class="chat-input-wrapper" onsubmit="handleComposerSubmit(event)">
+                <div class="chat-input-inner">
+                    <button type="button" class="attach-btn tools-toggle-btn" onclick="toggleComposerOptions(event)" title="Tools" aria-label="Tools">
+                        <i class="fas fa-sliders-h"></i>
+                    </button>
+                    <textarea id="userInput" class="chat-input" rows="1" placeholder="Message GenCode AI..."></textarea>
+                    <button type="submit" class="send-btn" id="sendBtn" aria-label="Send">
+                        <i class="fas fa-arrow-up"></i>
+                    </button>
+                </div>
+                <div class="composer-footer-row">
+                    <p class="chat-disclaimer" style="margin:0;">GenCode AI can make mistakes. Check important info.</p>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="clearChat()">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <aside class="code-canvas" id="codeCanvas">
+        <div class="code-canvas-header">
+            <div>
+                <h2>Generated Code</h2>
+                <p>Complete PHP output</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-secondary" id="codeCanvasToggleBtn" onclick="toggleCodeCanvas()" aria-label="Collapse canvas">
+                <i class="fas fa-chevron-right"></i>
+                <span>Collapse</span>
+            </button>
+        </div>
+        <div class="code-canvas-toolbar">
+            <div class="tabs" id="codeTabs">
+                <button type="button" class="tab-btn btn btn-sm btn-secondary active" data-lang="complete_php" onclick="switchCodeTab('complete_php')">Complete PHP</button>
+            </div>
+            <div class="toolbar" style="margin-top:8px;">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="copyCurrentCode()" id="copyBtn">
+                    <i class="fas fa-copy"></i> Copy Code
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="downloadCode()" id="downloadBtn" style="display:none;">
+                    <i class="fas fa-download"></i> Download
+                </button>
+            </div>
+        </div>
+        <div class="code-content" id="codeContent">
+            <div class="code-placeholder">
+                <i class="fas fa-code"></i>
+                <p>Generated code will appear here</p>
+                <p class="placeholder-hint">Run a prompt to preview generated PHP output.</p>
+            </div>
+            <div class="loading-overlay" id="loadingOverlay" style="display:none;">
+                <div style="text-align:center;">
+                    <div class="spinner"></div>
+                    <p style="margin-top:12px;color:var(--text-secondary);">Generating code...</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <button type="button" class="btn btn-primary canvas-expand-fab" id="codeCanvasExpandBtn" onclick="toggleCodeCanvas(true)" aria-label="Open code canvas">
+        <i class="fas fa-code"></i> Code
+    </button>
+</div>
+</div>
+
+<div class="validation-panel" id="validationPanel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h4 style="font-size:14px;font-weight:600;"><i class="fas fa-check-circle"></i> Quality Report</h4>
+        <button type="button" class="close-btn" onclick="closeValidation()" aria-label="Close"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="validationDetails"></div>
+    <div style="text-align:center;margin-top:12px;">
+        <div class="score-circle" id="scoreCircle" style="width:72px;height:72px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin:0 auto;background:var(--bg-soft);">
+            <span id="scoreValue" style="font-size:22px;font-weight:600;">0</span>
+        </div>
+        <div id="scoreStatus" style="margin-top:8px;">
+            <p class="status-text" style="font-size:13px;color:var(--text-secondary);">Excellent</p>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="newProjectModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Create New Project</h3>
+            <button type="button" class="close-btn" onclick="closeNewProjectModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="newProjectForm" onsubmit="createProject(event)">
+                <div class="form-group">
+                    <label for="projectName">Project Name <span class="required">*</span></label>
+                    <input type="text" id="projectName" class="form-control" required placeholder="e.g., Student Management">
+                </div>
+                <div class="form-group">
+                    <label for="projectDescription">Description</label>
+                    <textarea id="projectDescription" class="form-control" rows="3" placeholder="Brief description..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeNewProjectModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api-client.js' %}"></script>
+<script src="{% static 'js/chat.js' %}"></script>
+<script src="{% static 'js/code-generation.js' %}"></script>
+<script src="{% static 'js/generation-onboarding.js' %}"></script>
+<script>
+(function () {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
+    if (q) {
+        const input = document.getElementById('userInput');
+        if (input) {
+            input.value = q;
+            input.dispatchEvent(new Event('input'));
+            if (typeof generateCode === 'function') setTimeout(() => generateCode(), 400);
+        }
+    }
+})();
+</script>
+{% endblock %}
