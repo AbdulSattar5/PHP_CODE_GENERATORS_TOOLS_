@@ -113,7 +113,7 @@ If no OpenAI API key is configured, the app stores the uploaded ZIP safely but s
 
 1. Clone the repo.
 2. Create a virtualenv.
-3. `pip install -r requirements.txt`
+3. Install dependencies.
 4. Create `.env` from `.env.example`
 5. Add `SECRET_KEY` and `OPENAI_API_KEY` in `.env` or environment settings
 6. Run migrations
@@ -137,6 +137,31 @@ python manage.py collectstatic --noinput
 ```
 
 Set your WSGI file to point at the project and reload the PythonAnywhere web app after any config change.
+
+### PythonAnywhere Free-Account Note
+
+PythonAnywhere free accounts have limited disk space. The full AI/vector stack in
+`requirements.txt` can exceed that quota because packages like ChromaDB and the
+LangChain ecosystem pull in many compiled/runtime dependencies.
+
+For PythonAnywhere free accounts, use the slim deployment requirements instead:
+
+```bash
+pip install -r requirements-pythonanywhere.txt
+```
+
+This mode keeps the public/demo app working:
+
+- login/register
+- dashboard
+- project management
+- codebase upload UI
+- standards UI
+- generate page
+- safe empty-state onboarding
+
+In slim mode, optional agent modules are unavailable, so advanced AI/vector features
+fall back gracefully instead of crashing.
 
 ## Security Notes
 

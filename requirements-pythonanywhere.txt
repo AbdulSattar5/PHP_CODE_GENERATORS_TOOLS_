@@ -1,0 +1,15 @@
+# Minimal PythonAnywhere/free-account install.
+# This keeps the Django app, auth flow, UI, uploads, and public-safe empty states working
+# without installing the heavy AI/vector stack that often exceeds free-account disk quota.
+
+# Core Django app
+Django==4.2.7
+djangorestframework==3.14.0
+django-cors-headers==4.3.0
+python-dotenv==1.0.0
+
+# Utility packages used outside the optional agent stack
+aiofiles==23.2.1
+PyYAML==6.0.1
+requests==2.31.0
+gunicorn==23.0.0
